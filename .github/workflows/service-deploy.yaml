@@ -15,10 +15,12 @@ jobs:
       - name: Checkout the repo code
         uses: actions/checkout@v2
 
-      - name: Build and push image
+      - name: Log in to DockerHub
+        run: echo "${{ secrets.DOCKER_REPO_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_REPO_USERNAME }}" --password-stdin
+
+      - name: Build and push Polybot image
         run: |
           cd polybot
-          docker login -u ${{ secrets.DOCKER_REPO_USERNAME }} -p ${{ secrets.DOCKER_REPO_PASSWORD }}
           IMAGE_NAME=polybot:${{ github.run_number }}
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
@@ -29,10 +31,12 @@ jobs:
       - name: Checkout the repo code
         uses: actions/checkout@v2
 
-      - name: Build and push image
+      - name: Log in to DockerHub
+        run: echo "${{ secrets.DOCKER_REPO_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_REPO_USERNAME }}" --password-stdin
+
+      - name: Build and push Yolo5 image
         run: |
           cd yolo5
-          docker login -u ${{ secrets.DOCKER_REPO_USERNAME }} -p ${{ secrets.DOCKER_REPO_PASSWORD }}
           IMAGE_NAME=yolo5:${{ github.run_number }}
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
@@ -73,7 +77,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
-            sudo apt update && sudo apt install jq -y
+            sudo apt update && sudo apt install -y jq docker-compose
             cd PolybotService/
             echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" > telegram_bot_token.secret
             NGROK_DOMAIN=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
