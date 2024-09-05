@@ -3,23 +3,22 @@ from loguru import logger
 import os
 import time
 from telebot.types import InputFile
-
+import requests
+import boto3
+import uuid
 
 class Bot:
-
-    def __init__(self, token, telegram_chat_url):
-        # create a new instance of the TeleBot class.
-        # all communication with Telegram servers are done using self.telegram_bot_client
+    def __init__(self, token, telegram_chat_url, s3_bucket_name, yolo5_url):
         self.telegram_bot_client = telebot.TeleBot(token)
-
-        # remove any existing webhooks configured in Telegram servers
         self.telegram_bot_client.remove_webhook()
         time.sleep(0.5)
 
-        # set the webhook URL
-        self.telegram_bot_client.set_webhook(url=f'{telegram_chat_url}/{token}/', timeout=60)
-
+        webhook_url = f'{telegram_chat_url}/{token}/'
+        self.telegram_bot_client.set_webhook(url=webhook_url, timeout=60)
         logger.info(f'Telegram Bot information\n\n{self.telegram_bot_client.get_me()}')
+
+        self.telegram_bot_client.message_handler(func=self.handle_message)
+        logger.info("Message handler registered.")
 
     def send_text(self, chat_id, text):
         self.telegram_bot_client.send_message(chat_id, text)
@@ -27,51 +26,129 @@ class Bot:
     def send_text_with_quote(self, chat_id, text, quoted_msg_id):
         self.telegram_bot_client.send_message(chat_id, text, reply_to_message_id=quoted_msg_id)
 
-    def is_current_msg_photo(self, msg):
-        return 'photo' in msg
+    @staticmethod
+    def is_current_msg_photo(msg):
+        result = 'photo' in msg
+        logger.info(f'Is current message a photo? {result}')
+        return result
 
     def download_user_photo(self, msg):
-        """
-        Downloads the photos that sent to the Bot to `photos` directory (should be existed)
-        :return:
-        """
         if not self.is_current_msg_photo(msg):
             raise RuntimeError(f'Message content of type \'photo\' expected')
-
         file_info = self.telegram_bot_client.get_file(msg['photo'][-1]['file_id'])
         data = self.telegram_bot_client.download_file(file_info.file_path)
         folder_name = file_info.file_path.split('/')[0]
-
         if not os.path.exists(folder_name):
             os.makedirs(folder_name)
-
-        with open(file_info.file_path, 'wb') as photo:
+        file_path = os.path.join(folder_name, os.path.basename(file_info.file_path))
+        with open(file_path, 'wb') as photo:
             photo.write(data)
-
-        return file_info.file_path
+        logger.info(f'Photo downloaded to: {file_path}')
+        return file_path
 
     def send_photo(self, chat_id, img_path):
         if not os.path.exists(img_path):
             raise RuntimeError("Image path doesn't exist")
-
-        self.telegram_bot_client.send_photo(
-            chat_id,
-            InputFile(img_path)
-        )
-
-    def handle_message(self, msg):
-        """Bot Main message handler"""
-        logger.info(f'Incoming message: {msg}')
-        self.send_text(msg['chat']['id'], f'Your original message: {msg["text"]}')
+        self.telegram_bot_client.send_photo(chat_id, InputFile(img_path))
 
 
 class ObjectDetectionBot(Bot):
+    def __init__(self, token, telegram_chat_url, s3_bucket_name, yolo5_url):
+        super().__init__(token, telegram_chat_url, s3_bucket_name, yolo5_url)
+        self.s3_bucket_name = s3_bucket_name
+        self.s3_region = 'eu-west-3'  # Europe (Paris)
+        self.yolo5_url = yolo5_url
+        self.pending_prediction = {}
+        self.s3_client = boto3.client('s3', region_name=self.s3_region)
+        logger.info("ObjectDetectionBot initialized.")
+
+    def upload_to_s3(self, file_path):
+        file_name = os.path.basename(file_path)
+        unique_id = uuid.uuid4()
+        object_name = f'docker-project/photos_{unique_id}_{file_name}'
+
+        try:
+            logger.info(f'Uploading file to S3: {file_path}')
+            self.s3_client.upload_file(file_path, self.s3_bucket_name, object_name)
+
+            # Retry checking for file on S3
+            max_attempts = 10
+            for attempt in range(max_attempts):
+                response = self.s3_client.list_objects_v2(Bucket=self.s3_bucket_name, Prefix=object_name)
+                if 'Contents' in response:
+                    logger.info("File is available on S3")
+                    return object_name
+                else:
+                    logger.info(f"File is not available on S3 yet, retrying in 5 seconds... (Attempt {attempt+1}/{max_attempts})")
+                    time.sleep(5)
+            else:
+                raise TimeoutError("File upload timeout. Could not find file after 10 attempts.")
+
+        except Exception as e:
+            logger.error(f"Error uploading to S3: {e}")
+            raise
+
+    def request_yolo5_predictions(self, image_url):
+        try:
+            response = requests.post(self.yolo5_url, json={'image_url': image_url})
+            response.raise_for_status()
+            predictions = response.json()
+            logger.info(f"Predictions received: {predictions}")
+            return predictions
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error requesting YOLO5 predictions: {e}")
+            return {}
+
     def handle_message(self, msg):
-        logger.info(f'Incoming message: {msg}')
+        logger.info(f'Handling message: {msg}')
+        chat_id = msg['chat']['id']
 
-        if self.is_current_msg_photo(msg):
-            photo_path = self.download_user_photo(msg)
+        if 'text' in msg:
+            text = msg['text']
+            logger.info(f'Received text message: {text}')
+            if text.startswith('/predict'):
+                self.pending_prediction[chat_id] = True
+                self.send_text(chat_id, 'Please send a photo to analyze.')
+                logger.info(f'Set pending_prediction for chat_id {chat_id} to True')
+            else:
+                self.send_text(chat_id, 'Unsupported command. Please use the /predict command with a photo.')
 
-            # TODO upload the photo to S3
-            # TODO send an HTTP request to the `yolo5` service for prediction
-            # TODO send the returned results to the Telegram end-user
+        elif self.is_current_msg_photo(msg):
+            logger.info(f'Received photo message for chat_id {chat_id}')
+            logger.info(msg)
+            if self.pending_prediction.get(chat_id, False):
+                try:
+                    photo_path = self.download_user_photo(msg)
+                    logger.info(f'Photo downloaded to: {photo_path}')
+
+                    photo_name = self.upload_to_s3(photo_path)
+                    logger.info(f'Photo uploaded to S3 with name: {photo_name}')
+
+                    photo_url = f'https://{self.s3_bucket_name}.s3.{self.s3_region}.amazonaws.com/{photo_name}'
+                    logger.info(f'Photo URL: {photo_url}')
+
+                    predictions = self.request_yolo5_predictions(photo_url)
+                    logger.info(f'Predictions received: {predictions}')
+
+                    if predictions:
+                        prediction_text = ""
+                        for obj, conf in predictions.items():
+                            prediction_text += f"{obj}: {conf}\n"
+                    else:
+                        prediction_text = "No predictions were returned."
+
+                    self.send_text(chat_id, prediction_text)
+                    logger.info(f'Sent prediction result to chat_id {chat_id}')
+
+                    # Reset the pending state after processing
+                    self.pending_prediction[chat_id] = False
+                    logger.info(f'Reset pending_prediction for chat_id {chat_id}')
+                except Exception as e:
+                    logger.error(f"Error processing photo message: {e}")
+                    self.send_text(chat_id, f"An error occurred: {e}")
+            else:
+                self.send_text(chat_id, 'Please use the /predict command to analyze this photo.')
+                logger.info(f'No pending prediction for chat_id {chat_id}.')
+        else:
+            self.send_text(chat_id, 'Unsupported command or message.')
+            logger.info(f'Unsupported message type for chat_id {chat_id}.')

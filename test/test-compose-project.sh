@@ -38,12 +38,13 @@ SOME_MONGO_CONTAINER_ID=$(echo "$MONGO_CONTAINER_IDS" | head -n 1)
 
 echo "Connecting to container $SOME_MONGO_CONTAINER_ID and check the replicaSet status:"
 
-rs_status=$(docker exec $SOME_MONGO_CONTAINER_ID mongo --eval "rs.status()")
+rs_status=$(docker exec $SOME_MONGO_CONTAINER_ID mongosh --eval "rs.status()" --quiet)
 
 echo "$rs_status"
 
+
 # Check if "set" property configured
-if ! grep -q '"set"' <<< "$rs_status"; then
+if  grep -q '"set"' <<< "$rs_status"; then
     echo "Replica set not initialized (The 'set' field is missing)"
     exit 1
 fi
