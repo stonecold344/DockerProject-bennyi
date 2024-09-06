@@ -19,18 +19,11 @@ echo -e "\n\n\n-----------------------------------------------------------------
 echo "Test Case II: There are 3 running MongoDB containers"
 echo -e "-----------------------------------------------------------------------------------------------------------------"
 
-# List running MongoDB containers excluding the mongo-init-replica container
-MONGO_CONTAINERS=$(docker ps --filter "status=running" --filter "name=mongo" --format '{{.Names}}' | grep -E '^mongo[1-3]$')
+MONGO_CONTAINER_IDS=$(docker ps --filter "status=running" --filter "label=com.docker.compose.project" --format '{{.ID}} {{.Image}}' | grep "mongo:.*" | awk '{print $1}')
 
-# Count the number of MongoDB containers
-NUM_CONTAINERS=$(echo "$MONGO_CONTAINERS" | wc -l | tr -d ' ')
+docker ps --filter "status=running" --filter "label=com.docker.compose.project"
 
-# Debug output
-echo "Found MongoDB containers: $MONGO_CONTAINERS"
-echo "Number of MongoDB containers: $NUM_CONTAINERS"
-
-# Check if exactly 3 MongoDB containers are running
-if [ "$NUM_CONTAINERS" -ne 3 ]; then
+if ! [ "$(echo "$MONGO_CONTAINER_IDS" | wc -l)" -eq "3" ]; then
   echo "Three running mongo containers were not found"
   exit 1
 fi
