@@ -6,6 +6,7 @@ services:
     container_name: mongo1
     labels:
       - "type=mongo"
+      - "com.docker.compose.service=mongo1"
     restart: always
     ports:
       - "27017:27017"
@@ -19,13 +20,14 @@ services:
       interval: 10s
       retries: 5
       start_period: 30s
-      timeout: 30s
+      timeout: 300s
 
   mongo2:
     image: mongo:latest
     container_name: mongo2
     labels:
       - "type=mongo"
+      - "com.docker.compose.service=mongo2"
     restart: always
     ports:
       - "27018:27017"
@@ -39,13 +41,14 @@ services:
       interval: 10s
       retries: 5
       start_period: 30s
-      timeout: 30s
+      timeout: 300s
 
   mongo3:
     image: mongo:latest
     container_name: mongo3
     labels:
       - "type=mongo"
+      - "com.docker.compose.service=mongo3"
     restart: always
     ports:
       - "27019:27017"
@@ -59,7 +62,7 @@ services:
       interval: 10s
       retries: 5
       start_period: 30s
-      timeout: 30s
+      timeout: 300s
 
   mongo-init-replica:
     image: mongo:latest
@@ -68,15 +71,10 @@ services:
       - mongo1
       - mongo2
       - mongo3
-    entrypoint: ["sh", "-c", "sleep 30 && mongosh --host mongo1:27017 --eval 'rs.initiate({_id:\"rs0\", members:[{_id:0, host:\"mongo1:27017\"}, {_id:1, host:\"mongo2:27018\"}, {_id:2, host:\"mongo3:27019\"}]});'"]
+    entrypoint: ["sh", "-c", "sleep 60 && mongosh --host mongo1:27017 --eval 'rs.initiate({_id:\"rs0\", members:[{_id:0, host:\"mongo1:27017\"}, {_id:1, host:\"mongo2:27018\"}, {_id:2, host:\"mongo3:27019\"}]});'"]
     networks:
       - mongo-cluster
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "rs.status().ok == 1"]
-      interval: 10s
-      retries: 5
-      start_period: 30s
-      timeout: 30s
+    restart: always
 
   yolo5:
     build: ./yolo5
@@ -88,14 +86,11 @@ services:
       - ~/projects/DockerProject-bennyi/static/data:/usr/src/app/static/data
     environment:
       - MONGO_URI=mongodb://mongo1:27017,mongo2:27018,mongo3:27019/?replicaSet=rs0
+    depends_on:
+      - mongo-init-replica
     networks:
       - mongo-cluster
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
-      interval: 10s
-      retries: 5
-      start_period: 30s
-      timeout: 30s
+    restart: always
 
   polybot:
     build: ./polybot
@@ -107,14 +102,11 @@ services:
       YOLO5_URL: ${YOLO5_URL}
     ports:
       - "8443:8443"
+    depends_on:
+      - yolo5
     networks:
       - mongo-cluster
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8443/health"]
-      interval: 10s
-      retries: 5
-      start_period: 30s
-      timeout: 30s
+    restart: always
 
 volumes:
   mongo1-data:
