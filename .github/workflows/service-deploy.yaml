@@ -17,6 +17,7 @@ jobs:
 
       - name: List files in workspace
         run: |
+          echo "Listing files in the workspace:"
           ls -R
 
       - name: Log in to DockerHub
@@ -41,6 +42,7 @@ jobs:
 
       - name: List files in workspace
         run: |
+          echo "Listing files in the workspace:"
           ls -R
 
       - name: Log in to DockerHub
@@ -70,6 +72,7 @@ jobs:
 
       - name: List files in workspace
         run: |
+          echo "Listing files in the workspace:"
           ls -R
 
       - name: Copy Compose files to the EC2
@@ -117,5 +120,4 @@ jobs:
             """ > .env
             docker-compose down
             docker-compose up -d
-            sleep 10 # Wait for MongoDB containers to be ready
-            ./init-mongo.sh
+            sleep 10 # 
