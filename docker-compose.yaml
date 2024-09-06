@@ -14,12 +14,8 @@ services:
     command: ["mongod", "--replSet", "rs0"]
     networks:
       - mongo-cluster
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      retries: 5
-      start_period: 30s
-      timeout: 10s
+
+
 
   mongo2:
     image: mongo:latest
@@ -34,12 +30,8 @@ services:
     command: ["mongod", "--replSet", "rs0"]
     networks:
       - mongo-cluster
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      retries: 5
-      start_period: 30s
-      timeout: 10s
+
+
 
   mongo3:
     image: mongo:latest
@@ -54,12 +46,7 @@ services:
     command: ["mongod", "--replSet", "rs0"]
     networks:
       - mongo-cluster
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      retries: 5
-      start_period: 30s
-      timeout: 10s
+
 
   mongo-init-replica:
     image: mongo:latest
