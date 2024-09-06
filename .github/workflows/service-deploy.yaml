@@ -50,7 +50,7 @@ jobs:
           DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
 
   Deploy:
-    name: Deploy Docker Compose Project
+    name: Deploy Docker compose project
     runs-on: ubuntu-latest
     needs:
       - PolybotBuild
@@ -60,19 +60,26 @@ jobs:
       - name: Checkout the repo code
         uses: actions/checkout@v2
 
-      - name: Copy Compose Files to the EC2
-        uses: appleboy/scp-action@v0.1.0
+      - name: Copy Compose files to the EC2
+        uses: appleboy/scp-action@master
         with:
           host: ${{ env.EC2_PUBLIC_IP }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          source: |
-            docker-compose.yml
-            init-mongo.sh
+          source: docker-compose.yml
           target: /home/ubuntu/projects/DockerProject-bennyi/
 
-      - name: Check Copied Files on EC2
-        uses: appleboy/ssh-action@v0.1.0
+      - name: Copy MongoDB init script to the EC2
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ env.EC2_PUBLIC_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          source: init-mongo.sh
+          target: /home/ubuntu/projects/DockerProject-bennyi/
+
+      - name: Check copied files on EC2
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_PUBLIC_IP }}
           username: ubuntu
@@ -80,20 +87,22 @@ jobs:
           script: |
             ls -l /home/ubuntu/projects/DockerProject-bennyi/
 
-      - name: Update the Docker Compose Project in the EC2
-        uses: appleboy/ssh-action@v0.1.0
+      - name: Update the Docker Compose project in the EC2
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ env.EC2_PUBLIC_IP }}
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
-            sudo apt update && sudo apt install -y jq docker-compose
-            cd /home/ubuntu/projects/DockerProject-bennyi
+            sudo apt update && sudo apt install -y jq docker-compose-plugin
+            cd /home/ubuntu/projects/DockerProject-bennyi/polybot
             echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" > telegram_bot_token.secret
             NGROK_DOMAIN=$(curl -s localhost:8443/api/tunnels | jq -r '.tunnels[0].public_url')
-            echo "POLYBOT_IMG_NAME=${{ secrets.DOCKERHUB_USERNAME }}/polybot:${{ github.run_number }}
+            echo """
+            POLYBOT_IMG_NAME=${{ secrets.DOCKERHUB_USERNAME }}/polybot:${{ github.run_number }}
             YOLO5_IMG_NAME=${{ secrets.DOCKERHUB_USERNAME }}/yolo5:${{ github.run_number }}
-            TELEGRAM_APP_URL=$NGROK_DOMAIN" > .env
+            TELEGRAM_APP_URL=$NGROK_DOMAIN
+            """ > .env
             docker-compose down
             docker-compose up -d
             sleep 10 # Wait for MongoDB containers to be ready
