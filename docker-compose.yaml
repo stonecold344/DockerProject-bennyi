@@ -19,9 +19,7 @@ services:
       interval: 10s
       retries: 5
       start_period: 30s
-      timeout: 300s
-
-
+      timeout: 30s
 
   mongo2:
     image: mongo:latest
@@ -41,9 +39,7 @@ services:
       interval: 10s
       retries: 5
       start_period: 30s
-      timeout: 300s
-
-
+      timeout: 30s
 
   mongo3:
     image: mongo:latest
@@ -63,9 +59,7 @@ services:
       interval: 10s
       retries: 5
       start_period: 30s
-      timeout: 300s
-
-
+      timeout: 30s
 
   mongo-init-replica:
     image: mongo:latest
@@ -74,10 +68,15 @@ services:
       - mongo1
       - mongo2
       - mongo3
-    entrypoint: ["sh", "-c", "mongosh --host mongo1:27017 --eval 'rs.initiate({_id:\"rs0\", members:[{_id:0, host:\"mongo1:27017\"}, {_id:1, host:\"mongo2:27018\"}, {_id:2, host:\"mongo3:27019\"}]});'"]
+    entrypoint: ["sh", "-c", "sleep 30 && mongosh --host mongo1:27017 --eval 'rs.initiate({_id:\"rs0\", members:[{_id:0, host:\"mongo1:27017\"}, {_id:1, host:\"mongo2:27018\"}, {_id:2, host:\"mongo3:27019\"}]});'"]
     networks:
       - mongo-cluster
-
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "rs.status().ok == 1"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 30s
 
   yolo5:
     build: ./yolo5
@@ -91,6 +90,12 @@ services:
       - MONGO_URI=mongodb://mongo1:27017,mongo2:27018,mongo3:27019/?replicaSet=rs0
     networks:
       - mongo-cluster
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 30s
 
   polybot:
     build: ./polybot
@@ -104,6 +109,12 @@ services:
       - "8443:8443"
     networks:
       - mongo-cluster
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8443/health"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 30s
 
 volumes:
   mongo1-data:
