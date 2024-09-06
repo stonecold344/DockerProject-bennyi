@@ -67,7 +67,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           source: docker-compose.yml
-          target: projects/DockerProject-bennyi/
+          target: /home/ubuntu/projects/DockerProject-bennyi/
 
       - name: Copy MongoDB init script to the EC2
         uses: appleboy/scp-action@master
@@ -76,7 +76,16 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           source: init-mongo.sh
-          target: projects/DockerProject-bennyi/
+          target: /home/ubuntu/projects/DockerProject-bennyi/
+
+      - name: Check copied files on EC2
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_PUBLIC_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            ls -l /home/ubuntu/projects/DockerProject-bennyi/
 
       - name: Update the Docker Compose project in the EC2
         uses: appleboy/ssh-action@master
@@ -86,7 +95,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
             sudo apt update && sudo apt install -y jq docker-compose-plugin
-            cd polybot/
+            mkdir -p /home/ubuntu/projects/DockerProject-bennyi/polybot
+            cd /home/ubuntu/projects/DockerProject-bennyi/polybot
             echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" > telegram_bot_token.secret
             NGROK_DOMAIN=$(curl -s localhost:8443/api/tunnels | jq -r '.tunnels[0].public_url')
             echo """
