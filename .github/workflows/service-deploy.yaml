@@ -15,14 +15,8 @@ jobs:
       - name: Checkout the repo code
         uses: actions/checkout@v2
 
-      - name: List files in workspace
-        run: |
-          echo "Listing files in the workspace:"
-          ls -R
-
       - name: Log in to DockerHub
-        run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Build and push Polybot image
         run: |
@@ -40,14 +34,8 @@ jobs:
       - name: Checkout the repo code
         uses: actions/checkout@v2
 
-      - name: List files in workspace
-        run: |
-          echo "Listing files in the workspace:"
-          ls -R
-
       - name: Log in to DockerHub
-        run: |
-          echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Build and push Yolo5 image
         run: |
@@ -70,11 +58,6 @@ jobs:
       - name: Checkout the repo code
         uses: actions/checkout@v2
 
-      - name: List files in workspace
-        run: |
-          echo "Listing files in the workspace:"
-          ls -R
-
       - name: Copy Docker Compose file to EC2
         uses: appleboy/scp-action@master
         with:
@@ -95,15 +78,6 @@ jobs:
           target: /home/ubuntu/projects/DockerProject-bennyi/
           debug: true
 
-      - name: Check copied files on EC2
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ env.EC2_PUBLIC_IP }}
-          username: ubuntu
-          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
-          script: |
-            ls -l /home/ubuntu/projects/DockerProject-bennyi/
-
       - name: Update Docker Compose project on EC2
         uses: appleboy/ssh-action@master
         with:
@@ -111,17 +85,20 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
-            sudo apt update && sudo apt install -y jq docker-compose-plugin
+            sudo apt update
+            sudo apt install -y docker-compose jq
             cd /home/ubuntu/projects/DockerProject-bennyi/
-            echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" > telegram_bot_token.secret
-            NGROK_DOMAIN=$(curl -s localhost:8443/api/tunnels | jq -r '.tunnels[0].public_url')
+            echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" > .env
+            echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}" >> .env
+            echo "YOLO5_URL=${{ secrets.YOLO5_URL }}" >> .env
+            NGROK_DOMAIN=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+            echo "TELEGRAM_APP_URL=$NGROK_DOMAIN" >> .env
             echo """
             POLYBOT_IMG_NAME=${{ secrets.DOCKERHUB_USERNAME }}/polybot:${{ github.run_number }}
             YOLO5_IMG_NAME=${{ secrets.DOCKERHUB_USERNAME }}/yolo5:${{ github.run_number }}
-            TELEGRAM_APP_URL=$NGROK_DOMAIN
-            """ > .env
+            """ >> .env
             docker-compose down
             docker-compose up -d
-            sleep 10 # Wait for MongoDB containers to be ready
+            sleep 10
             chmod +x ./init-mongo.sh
             ./init-mongo.sh
