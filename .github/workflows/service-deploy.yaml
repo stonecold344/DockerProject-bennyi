@@ -32,7 +32,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Log in to DockerHub
-        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Build and push Yolo5 image
         run: |
@@ -80,7 +80,7 @@ jobs:
             sudo apt update && sudo apt install -y jq docker-compose-plugin
             cd PolybotService/
             echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" > telegram_bot_token.secret
-            NGROK_DOMAIN=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+            NGROK_DOMAIN=$(curl -s localhost:8443/api/tunnels | jq -r '.tunnels[0].public_url')
             echo """
             POLYBOT_IMG_NAME=polybot:${{ github.run_number }}
             YOLO5_IMG_NAME=yolo5:${{ github.run_number }}
