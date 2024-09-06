@@ -14,8 +14,12 @@ services:
     command: ["mongod", "--replSet", "rs0"]
     networks:
       - mongo-cluster
-
-
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 300s
 
   mongo2:
     image: mongo:latest
@@ -30,8 +34,12 @@ services:
     command: ["mongod", "--replSet", "rs0"]
     networks:
       - mongo-cluster
-
-
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 300s
 
   mongo3:
     image: mongo:latest
@@ -46,7 +54,12 @@ services:
     command: ["mongod", "--replSet", "rs0"]
     networks:
       - mongo-cluster
-
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 300s
 
   mongo-init-replica:
     image: mongo:latest
@@ -55,7 +68,7 @@ services:
       - mongo1
       - mongo2
       - mongo3
-    entrypoint: ["sh", "-c", "sleep 200 && mongosh --host mongo1:27017 --eval 'rs.initiate({_id:\"rs0\", members:[{_id:0, host:\"mongo1:27017\"}, {_id:1, host:\"mongo2:27018\"}, {_id:2, host:\"mongo3:27019\"}]});'"]
+    entrypoint: ["sh", "-c", "sleep 30 && mongosh --host mongo1:27017 --eval 'rs.initiate({_id:\"rs0\", members:[{_id:0, host:\"mongo1:27017\"}, {_id:1, host:\"mongo2:27018\"}, {_id:2, host:\"mongo3:27019\"}]});'"]
     networks:
       - mongo-cluster
 
@@ -92,3 +105,4 @@ volumes:
 
 networks:
   mongo-cluster:
+    driver: bridge
