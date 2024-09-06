@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Check if MongoDB is up
-echo "Waiting for MongoDB to be available..."
-until nc -z mongo1 27017; do
-  sleep 1
-done
+#echo "Waiting for MongoDB to be available..."
+#until nc -z mongo1 27017; do
+#  sleep 1
+#done
 
 echo "MongoDB is up, initializing replica set..."
 
