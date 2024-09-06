@@ -21,7 +21,7 @@ jobs:
       - name: Build and push Polybot image
         run: |
           cd polybot
-          IMAGE_NAME=polybot:${{ github.run_number }}
+          IMAGE_NAME=dockerhub_username/polybot:${{ github.run_number }}
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
@@ -37,7 +37,7 @@ jobs:
       - name: Build and push Yolo5 image
         run: |
           cd yolo5
-          IMAGE_NAME=yolo5:${{ github.run_number }}
+          IMAGE_NAME=dockerhub_username/yolo5:${{ github.run_number }}
           docker build -t $IMAGE_NAME .
           docker push $IMAGE_NAME
 
@@ -59,7 +59,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           source: docker-compose.yml
-          target: PolybotService/
+          target: polybot/
 
       - name: Copy MongoDB init script to the EC2
         uses: appleboy/scp-action@master
@@ -68,7 +68,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           source: init-mongo.sh
-          target: PolybotService/
+          target: polybot/
 
       - name: Update the Docker Compose project in the EC2
         uses: appleboy/ssh-action@master
@@ -78,12 +78,12 @@ jobs:
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
             sudo apt update && sudo apt install -y jq docker-compose-plugin
-            cd PolybotService/
+            cd polybot/
             echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" > telegram_bot_token.secret
             NGROK_DOMAIN=$(curl -s localhost:8443/api/tunnels | jq -r '.tunnels[0].public_url')
             echo """
-            POLYBOT_IMG_NAME=polybot:${{ github.run_number }}
-            YOLO5_IMG_NAME=yolo5:${{ github.run_number }}
+            POLYBOT_IMG_NAME=dockerhub_username/polybot:${{ github.run_number }}
+            YOLO5_IMG_NAME=dockerhub_username/yolo5:${{ github.run_number }}
             TELEGRAM_APP_URL=$NGROK_DOMAIN
             """ > .env
             docker-compose down
