@@ -19,11 +19,11 @@ echo -e "\n\n\n-----------------------------------------------------------------
 echo "Test Case II: There are 3 running MongoDB containers"
 echo -e "-----------------------------------------------------------------------------------------------------------------"
 
-# List all running MongoDB containers
-MONGO_CONTAINERS=$(docker ps --filter "status=running" --filter "label=type=mongo" --format '{{.ID}}')
+# List running MongoDB containers based on port
+MONGO_CONTAINERS=$(docker ps --filter "status=running" --filter "expose=27017" --format '{{.Names}}')
 
 # Count the number of MongoDB containers
-NUM_CONTAINERS=$(echo "$MONGO_CONTAINERS" | wc -l | tr -d ' ')
+NUM_CONTAINERS=$(echo "$MONGO_CONTAINERS" | grep -E '^mongo[1-3]$' | wc -l | tr -d ' ')
 
 # Debug output
 echo "Found MongoDB containers: $MONGO_CONTAINERS"
