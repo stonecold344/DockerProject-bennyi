@@ -4,6 +4,8 @@ services:
   mongo1:
     image: mongo:latest
     container_name: mongo1
+    labels:
+      - "type=mongo"
     restart: always
     ports:
       - "27017:27017"
@@ -22,6 +24,8 @@ services:
   mongo2:
     image: mongo:latest
     container_name: mongo2
+    labels:
+      - "type=mongo"
     restart: always
     ports:
       - "27018:27017"
@@ -40,6 +44,8 @@ services:
   mongo3:
     image: mongo:latest
     container_name: mongo3
+    labels:
+      - "type=mongo"
     restart: always
     ports:
       - "27019:27017"
@@ -57,6 +63,7 @@ services:
 
   mongo-init-replica:
     image: mongo:latest
+    container_name: mongo-init-replica
     depends_on:
       - mongo1
       - mongo2
