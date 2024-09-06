@@ -85,6 +85,7 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
+            ls -l
             ls -l /home/ubuntu/projects/DockerProject-bennyi/
 
       - name: Update the Docker Compose project in the EC2
@@ -95,7 +96,6 @@ jobs:
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
             sudo apt update && sudo apt install -y jq docker-compose-plugin
-            mkdir -p /home/ubuntu/projects/DockerProject-bennyi/polybot
             cd /home/ubuntu/projects/DockerProject-bennyi/polybot
             echo "${{ secrets.TELEGRAM_BOT_TOKEN }}" > telegram_bot_token.secret
             NGROK_DOMAIN=$(curl -s localhost:8443/api/tunnels | jq -r '.tunnels[0].public_url')
