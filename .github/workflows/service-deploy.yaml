@@ -97,10 +97,9 @@ jobs:
             POLYBOT_IMG_NAME=${{ secrets.DOCKERHUB_USERNAME }}/polybot:${{ github.run_number }}
             YOLO5_IMG_NAME=${{ secrets.DOCKERHUB_USERNAME }}/yolo5:${{ github.run_number }}
             """ >> .env
-            cd /polybot/
             docker-compose down
             docker-compose up -d
-            sleep 90
+            sleep 10
             chmod +x ./init-mongo.sh
             ./init-mongo.sh
 
