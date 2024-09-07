@@ -94,8 +94,9 @@ jobs:
             echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}" >> .env
             echo "YOLO5_URL=${{ secrets.YOLO5_URL }}" >> .env
 
-            # Try to fetch NGROK_DOMAIN or use a default value if not available
-            NGROK_DOMAIN=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' || echo "http://localhost:5000")
+            ngrok http 8443 --log=stdout > /dev/null &
+            sleep 5  # Wait for ngrok to start
+            NGROK_DOMAIN=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' || echo "http://localhost:8443")
             echo "TELEGRAM_APP_URL=$NGROK_DOMAIN" >> .env
 
             # Add Docker image names to .env
