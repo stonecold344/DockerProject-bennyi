@@ -86,7 +86,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           script: |
             sudo apt update
-            sudo apt install -y docker-compose jq
+            sudo apt install -y docker-compose jq ngrok
+
             cd /home/ubuntu/projects/DockerProject-bennyi/
 
             # Create the .env file with required secrets
@@ -94,6 +95,7 @@ jobs:
             echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}" >> .env
             echo "YOLO5_URL=${{ secrets.YOLO5_URL }}" >> .env
 
+            # Start ngrok and save its domain in NGROK_DOMAIN
             ngrok http 8443 --log=stdout > /dev/null &
             sleep 5  # Wait for ngrok to start
             NGROK_DOMAIN=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' || echo "http://localhost:8443")
