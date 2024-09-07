@@ -6,7 +6,7 @@ on:
       - main
 
 env:
-  EC2_PUBLIC_IP: 13.38.131.242
+  EC2_PUBLIC_IP: 13.38.131.242  # Replace with your actual EC2 public IP if different
 
 jobs:
   PolybotBuild:
@@ -88,18 +88,25 @@ jobs:
             sudo apt update
             sudo apt install -y docker-compose jq
             cd /home/ubuntu/projects/DockerProject-bennyi/
+
+            # Create the .env file with required secrets
             echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" > .env
             echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}" >> .env
             echo "YOLO5_URL=${{ secrets.YOLO5_URL }}" >> .env
-            NGROK_DOMAIN=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+
+            # Try to fetch NGROK_DOMAIN or use a default value if not available
+            NGROK_DOMAIN=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' || echo "http://localhost:5000")
             echo "TELEGRAM_APP_URL=$NGROK_DOMAIN" >> .env
-            echo """
-            POLYBOT_IMG_NAME=${{ secrets.DOCKERHUB_USERNAME }}/polybot:${{ github.run_number }}
-            YOLO5_IMG_NAME=${{ secrets.DOCKERHUB_USERNAME }}/yolo5:${{ github.run_number }}
-            """ >> .env
+
+            # Add Docker image names to .env
+            echo "POLYBOT_IMG_NAME=${{ secrets.DOCKERHUB_USERNAME }}/polybot:${{ github.run_number }}" >> .env
+            echo "YOLO5_IMG_NAME=${{ secrets.DOCKERHUB_USERNAME }}/yolo5:${{ github.run_number }}" >> .env
+
+            # Start the Docker containers
             docker-compose down
             docker-compose up -d
+
+            # Ensure MongoDB initialization script is executable
             sleep 10
             chmod +x ./init-mongo.sh
             ./init-mongo.sh
-
