@@ -113,9 +113,3 @@ jobs:
             sleep 10
             chmod +x ./init-mongo.sh
             ./init-mongo.sh
-
-            # Wait for MongoDB to be ready
-            until docker exec mongo1 mongosh --eval "rs.status()" --quiet; do
-              echo "Waiting for MongoDB to be ready..."
-              sleep 5
-            done
