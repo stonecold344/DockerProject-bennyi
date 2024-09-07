@@ -96,7 +96,7 @@ services:
     build: ./polybot
     image: ${POLYBOT_IMG_NAME}
     environment:
-      TELEGRAM_TOKEN: ${secrets.TELEGRAM_TOKEN}
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
       TELEGRAM_APP_URL: ${TELEGRAM_APP_URL}
       S3_BUCKET_NAME: ${S3_BUCKET_NAME}
       YOLO5_URL: ${YOLO5_URL}
