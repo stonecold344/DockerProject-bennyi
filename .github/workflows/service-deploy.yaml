@@ -90,7 +90,7 @@ jobs:
             cd /home/ubuntu/projects/DockerProject-bennyi/
 
             # Create the .env file with required secrets
-            echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" > .env
+            echo "TELEGRAM_TOKEN=${{ secrets.TELEGRAM_TOKEN }}" > .env
             echo "S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}" >> .env
             echo "YOLO5_URL=${{ secrets.YOLO5_URL }}" >> .env
 
