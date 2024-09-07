@@ -49,6 +49,7 @@ if  grep -q '"set"' <<< "$rs_status"; then
     exit 1
 fi
 
+
 echo -e "\n✅ Mongo replicaSet was initialized properly"
 
 echo -e "\n\n\n-----------------------------------------------------------------------------------------------------------------"
