@@ -113,3 +113,15 @@ jobs:
             sleep 10
             chmod +x ./init-mongo.sh
             ./init-mongo.sh
+
+      - name: Print MongoDB Container Logs
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ env.EC2_PUBLIC_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          script: |
+            docker logs mongo1
+            docker logs mongo2
+            docker logs mongo3
+            docker logs mongo-init-replica
