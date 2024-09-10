@@ -4,7 +4,6 @@ import os
 from dotenv import load_dotenv
 from bot import ObjectDetectionBot
 
-# Load environment variables from .env file
 load_dotenv()
 
 app = flask.Flask(__name__)
